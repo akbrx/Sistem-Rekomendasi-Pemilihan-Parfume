@@ -79,11 +79,22 @@ def main():
     # Bersihkan kolom Harga
     if 'Harga' in df.columns:
         print("Membersihkan kolom Harga...")
-        df['Harga'] = df['Harga'].astype(str).str.replace('Rp', '', case=False)
-        df['Harga'] = df['Harga'].str.replace(',', '')
-        df['Harga'] = df['Harga'].str.replace(' ', '')
-        df['Harga'] = df['Harga'].str.replace('-', '')
-        df['Harga'] = pd.to_numeric(df['Harga'], errors='coerce').fillna(0).astype(int)
+        def clean_price(val):
+            val = str(val).lower().replace('rp', '').strip()
+            # Ambil bagian pertama jika berupa range harga (ada strip peninggalan)
+            val = val.split('-')[0].strip()
+            if val.endswith(',00'):
+                val = val[:-3]
+            if val.endswith(',-'):
+                val = val[:-2]
+            # Hapus semua karakter yang bukan angka
+            val = re.sub(r'[^\d]', '', val)
+            try:
+                return int(val)
+            except:
+                return 0
+
+        df['Harga'] = df['Harga'].apply(clean_price)
 
     # Transformasi Longevity
     if 'Longevity' in df.columns:

@@ -8,10 +8,31 @@ use App\Services\TopsisCalculationService;
 
 class RecommendationController extends Controller
 {
-    public function index(TopsisCalculationService $topsisService)
+    public function showForm()
     {
-        // 1. Ambil seluruh data parfum dari database
-        $perfumes = Perfume::all();
+        $families = Perfume::select('olfactory_family')->distinct()->pluck('olfactory_family');
+        return view('recommendation.form', compact('families'));
+    }
+
+    public function calculate(Request $request, TopsisCalculationService $topsisService)
+    {
+        $query = Perfume::query();
+
+        if ($request->filled('olfactory_family')) {
+            $query->where('olfactory_family', $request->olfactory_family);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->max_price);
+        }
+        if ($request->filled('min_longevity')) {
+            $query->where('longevity', '>=', $request->min_longevity);
+        }
+
+        $perfumes = $query->get();
+        
+        if ($perfumes->isEmpty()) {
+            return back()->with('error', 'Maaf, tidak ada parfum yang sesuai dengan kriteria budget dan aroma Anda.');
+        }
 
         // 2. Bobot statis sementara (total 1)
         $ahpWeights = [
@@ -33,11 +54,10 @@ class RecommendationController extends Controller
         $evaluations = [];
         foreach ($perfumes as $perfume) {
             $evaluations[$perfume->id] = [
-                // Fallback untuk property baik dia uppercase (seperti csv) atau lowercase standar laravel
-                'sillage' => $perfume->Sillage ?? $perfume->sillage,
-                'projection' => $perfume->Projection ?? $perfume->projection,
-                'longevity' => $perfume->Longevity ?? $perfume->longevity,
-                'price' => $perfume->Harga ?? $perfume->harga ?? $perfume->price,
+                'sillage' => $perfume->sillage,
+                'projection' => $perfume->projection,
+                'longevity' => $perfume->longevity,
+                'price' => $perfume->price,
             ];
         }
 

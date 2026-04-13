@@ -7,4 +7,5 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/rekomendasi', [RecommendationController::class, 'index']);
+Route::get('/rekomendasi', [RecommendationController::class, 'showForm']);
+Route::post('/rekomendasi/hasil', [RecommendationController::class, 'calculate']);
