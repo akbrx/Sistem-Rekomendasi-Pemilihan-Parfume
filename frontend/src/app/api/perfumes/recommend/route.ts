@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         // 1. Ambil data dari database mematuhi filter
         const whereClause: any = {};
         if (family) {
-            whereClause.olfactory_family = family;
+            whereClause.olfactory_family = { contains: family };
         }
         if (maxPrice) {
             whereClause.price = { lte: maxPrice };

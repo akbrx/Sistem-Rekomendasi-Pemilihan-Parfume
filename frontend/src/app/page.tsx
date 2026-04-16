@@ -1,36 +1,174 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Home() {
+  const fullText = 'Selamat Datang di Parfume Suggest';
+  const [displayText, setDisplayText] = useState('');
+  const [done, setDone] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Typing effect — ketik sekali lalu berhenti
+  useEffect(() => {
+    if (displayText.length < fullText.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(fullText.substring(0, displayText.length + 1));
+      }, 80);
+      return () => clearTimeout(timeout);
+    } else {
+      setDone(true);
+    }
+  }, [displayText]);
+
+  // Scroll-triggered fade-in untuk kartu edukasi
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.getAttribute('data-idx'));
+            setVisibleCards((prev) => new Set(prev).add(idx));
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    cardRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToEdukasi = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const elem = document.getElementById('edukasi');
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 animate-fade-in-up">
-      <div className="text-center bg-white rounded-3xl shadow-xl overflow-hidden py-16 px-6 sm:px-12 md:px-20 relative border border-gray-100">
-        {/* Glow Effects */}
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-72 h-72 bg-indigo-50 rounded-full opacity-60 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 h-72 bg-blue-50 rounded-full opacity-60 blur-3xl"></div>
-        
-        <div className="relative z-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6 tracking-tight">
-            Selamat Datang di <br className="hidden md:block" />
-            <span className="text-indigo-600 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">Sistem Rekomendasi Parfum Terbaik</span>
+    <div className="relative min-h-screen bg-gray-900 overflow-hidden">
+      
+      {/* Animated Background Blobs — Menutupi SELURUH halaman */}
+      <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+      </div>
+
+      {/* HERO SECTION */}
+      <section className="relative min-h-[90vh] flex items-center justify-center z-10">
+        <div className="text-center px-4 max-w-5xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+               {displayText}
+               {!done && <span className="animate-pulse border-r-4 border-purple-400 ml-1"></span>}
+            </span>
           </h1>
           
-          <p className="mt-6 text-lg md:text-xl text-gray-500 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Kami hadir untuk membantu Anda menemukan karakteristik wewangian yang merepresentasikan diri Anda melalui metode saintifik <strong className="text-gray-700">AHP (Analytical Hierarchy Process)</strong> dan <strong className="text-gray-700">TOPSIS</strong>—memastikan akurasi tinggi sesuai dengan pertimbangan budget, ketahanan aroma, unjuk pancaran, hingga sillage-nya.
+          <p className={`mt-6 font-medium text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed transition-opacity duration-700 ${done ? 'opacity-100' : 'opacity-0'}`}>
+            Kami menyediakan web ini untuk membantu kalian menemukan parfum yang cocok untuk Anda dan memberikan pengetahuan tentang parfum.
           </p>
-          
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/tentang-parfume" 
-               className="w-full sm:w-auto px-8 py-3.5 border-2 border-indigo-600 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition duration-300 shadow-sm text-center">
+
+          <div className={`mt-12 flex flex-col sm:flex-row gap-5 justify-center items-center transition-opacity duration-700 delay-300 ${done ? 'opacity-100' : 'opacity-0'}`}>
+            <a href="#edukasi" onClick={scrollToEdukasi} 
+               className="w-full sm:w-auto px-8 py-4 bg-gray-800 bg-opacity-50 backdrop-blur-md border border-gray-600 text-white font-bold rounded-2xl hover:bg-gray-700 transition duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)] text-center group">
                 Pelajari Tentang Parfum
-            </Link>
+            </a>
             
             <Link href="/rekomendasi" 
-               className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition duration-300 shadow-lg hover:shadow-indigo-500/30 text-center">
-                Mulai Cari Parfum Mu
+               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-extrabold rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition duration-300 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] text-center transform hover:scale-105">
+                Mulai Pencarian
             </Link>
           </div>
+
+          {/* Animated scroll indicator */}
+          <div className={`mt-16 transition-opacity duration-700 delay-500 ${done ? 'opacity-100' : 'opacity-0'}`}>
+            <a href="#edukasi" onClick={scrollToEdukasi} className="inline-block animate-bounce">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </a>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* SECTION EDUKASI PARFUM */}
+      <section id="edukasi" className="relative z-10 py-24">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Panduan Edukasi Parfum</h2>
+            <p className="mt-4 text-lg text-gray-400">Pahami anatomi wewangian sebelum Anda memutuskan membeli parfum idaman.</p>
+          </div>
+
+          <div className="space-y-12">
+            {/* Card 1 */}
+            <div
+              ref={(el) => { cardRefs.current[0] = el; }}
+              data-idx="0"
+              className={`bg-gray-800 bg-opacity-60 backdrop-blur-xl rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-700 transition-all duration-700 ${visibleCards.has(0) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+            >
+              <h3 className="text-2xl font-bold text-indigo-400 mb-4 flex items-center gap-3">
+                <span>📖</span> Sejarah & Definisi
+              </h3>
+              <p className="text-gray-300 leading-relaxed text-lg">
+                Kata parfum berasal dari bahasa Latin <i>per fumum</i> yang berarti "melalui asap". Selama ribuan tahun, manusia menggunakan campuran minyak esensial aromatik untuk menciptakan aroma tubuh yang memikat. Parfum modern tidak hanya sebagai pewangi, melainkan sebagai tanda pengenal (<i>signature scent</i>) karakter seseorang.
+              </p>
+            </div>
+
+            {/* Card 2 */}
+            <div
+              ref={(el) => { cardRefs.current[1] = el; }}
+              data-idx="1"
+              className={`bg-gray-800 bg-opacity-60 backdrop-blur-xl rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-700 transition-all duration-700 delay-150 ${visibleCards.has(1) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+            >
+              <h3 className="text-2xl font-bold text-purple-400 mb-6 flex items-center gap-3">
+                <span>🧬</span> Teori S.P.L (Sillage, Projection, Longevity)
+              </h3>
+              <div className="grid md:grid-cols-3 gap-8">
+                <div className="bg-purple-900 bg-opacity-40 p-6 rounded-2xl border border-purple-800">
+                  <h4 className="font-bold text-purple-200 text-lg mb-2">Sillage (Jejak)</h4>
+                  <p className="text-gray-400 text-sm">Aroma tertinggal di udara saat Anda berjalan melewati seseorang. Jejak gaib yang membuat orang menoleh ke belakang.</p>
+                </div>
+                <div className="bg-blue-900 bg-opacity-40 p-6 rounded-2xl border border-blue-800">
+                  <h4 className="font-bold text-blue-200 text-lg mb-2">Projection (Pancaran)</h4>
+                  <p className="text-gray-400 text-sm">Sejauh apa radius parfum dapat tercium oleh orang lain ketika Anda sekadar berdiam diri atau duduk di ruangan.</p>
+                </div>
+                <div className="bg-indigo-900 bg-opacity-40 p-6 rounded-2xl border border-indigo-800">
+                  <h4 className="font-bold text-indigo-200 text-lg mb-2">Longevity (Ketahanan)</h4>
+                  <p className="text-gray-400 text-sm">Berapa lama aroma dapat bertahan menempel dan tercium pada kulit atau serat pakaian Anda sejak pertama kali disemprot.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div
+              ref={(el) => { cardRefs.current[2] = el; }}
+              data-idx="2"
+              className={`bg-gray-800 bg-opacity-60 backdrop-blur-xl rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-700 transition-all duration-700 delay-300 ${visibleCards.has(2) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+            >
+              <h3 className="text-2xl font-bold text-blue-400 mb-4 flex items-center gap-3">
+                <span>🧪</span> Piramida Aroma (Notes)
+              </h3>
+              <p className="text-gray-300 leading-relaxed text-lg mb-4">
+                Sebuah parfum berkelas memiliki 3 fase perubahan aroma ketika bersentuhan dengan udara dan suhu tubuh:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-400 ml-4">
+                <li><strong className="text-gray-200">Top Notes:</strong> Kesan pertama, ringan, dan langsung menguap. (Berlangsung 15 menit pertama).</li>
+                <li><strong className="text-gray-200">Middle (Heart) Notes:</strong> Karakter utama dari parfum. Aroma sebenarnya. (Berlangsung 1-4 jam).</li>
+                <li><strong className="text-gray-200">Base Notes:</strong> Pondasi parfum yang mengunci aroma agar menempel lama di kulit. (Bertahan hingga seharian).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
