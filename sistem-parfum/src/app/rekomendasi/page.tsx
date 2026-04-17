@@ -26,26 +26,23 @@ function parseRupiahToNumber(formatted: string): string {
 
 export default function RecommendationForm() {
   const router = useRouter();
-  const [families, setFamilies] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // form state
   const [family, setFamily] = useState('');
   const [priceDisplay, setPriceDisplay] = useState('');
   const [hours, setHours] = useState('');
 
-  useEffect(() => {
-    fetch('/api/perfumes/families')
-      .then(res => res.json())
-      .then(data => {
-        if (data.families) setFamilies(data.families);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+  // List 8 keluarga aroma sesuai halaman edukasi
+  const olfactoryFamilies = [
+    'Citrus',
+    'Floral',
+    'Fougère',
+    'Oriental',
+    'Woody',
+    'Fresh / Aquatic',
+    'Gourmand',
+    'Chypre'
+  ];
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '');
@@ -69,15 +66,6 @@ export default function RecommendationForm() {
     router.push(`/rekomendasi/hasil?${params.toString()}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-gray-700 border-t-indigo-500 rounded-full animate-spin" />
-        <p className="text-gray-400 font-medium text-sm">Memuat data aroma…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-lg mx-auto px-4 py-16 sm:py-20">
       {/* Card */}
@@ -95,17 +83,24 @@ export default function RecommendationForm() {
             <label htmlFor="olfactory_family" className="block text-gray-300 font-semibold mb-2 text-sm uppercase tracking-wide">
               Keluarga Aroma
             </label>
-            <select
-              id="olfactory_family"
-              value={family}
-              onChange={(e) => setFamily(e.target.value)}
-              className="w-full border border-gray-600 rounded-xl py-3.5 px-4 text-gray-200 bg-gray-700/50 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
-            >
-              <option value="">Semua Aroma</option>
-              {families.map((f, i) => (
-                <option key={i} value={f}>{f}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="olfactory_family"
+                value={family}
+                onChange={(e) => setFamily(e.target.value)}
+                className="w-full border border-gray-600 rounded-xl py-3.5 px-4 text-gray-200 bg-gray-700/50 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+              >
+                <option value="">Semua Aroma</option>
+                {olfactoryFamilies.map((f, i) => (
+                  <option key={i} value={f}>{f}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Budget */}

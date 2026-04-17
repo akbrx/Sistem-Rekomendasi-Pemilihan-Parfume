@@ -20,18 +20,29 @@ export interface CriteriaTypes {
 
 export class TopsisCalculationService {
     calculate(evaluations: EvaluationMatrix, weights: Weights, criteriaTypes: CriteriaTypes) {
-        if (Object.keys(evaluations).length === 0) return {};
+        if (Object.keys(evaluations).length === 0) return { rankings: {}, steps: null };
 
         const normalizedMatrix = this.step1Normalize(evaluations);
         const weightedMatrix = this.step2ApplyWeights(normalizedMatrix, weights);
         const idealSolutions = this.step3FindIdealSolutions(weightedMatrix, criteriaTypes);
         const distances = this.step4CalculateDistances(weightedMatrix, idealSolutions.positive, idealSolutions.negative);
-        const rankings = this.step5CalculatePreferences(distances);
+        const preferenceScores = this.step5CalculatePreferences(distances);
 
         // Sort Descending (Terbesar ke Terkecil)
-        return Object.entries(rankings)
+        const sortedRankings = Object.entries(preferenceScores)
             .sort(([, a], [, b]) => b - a)
             .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
+        return {
+            rankings: sortedRankings,
+            steps: {
+                normalizedMatrix,
+                weightedMatrix,
+                idealSolutions,
+                distances,
+                preferenceScores
+            }
+        };
     }
 
     private step1Normalize(evaluations: EvaluationMatrix) {

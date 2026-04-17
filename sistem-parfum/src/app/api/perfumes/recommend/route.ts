@@ -14,7 +14,14 @@ export async function POST(req: NextRequest) {
         // 1. Ambil data dari database mematuhi filter
         const whereClause: any = {};
         if (family) {
-            whereClause.olfactory_family = { contains: family };
+            if (family.includes(' / ')) {
+                const parts = family.split(' / ');
+                whereClause.OR = parts.map(p => ({
+                    olfactory_family: { contains: p }
+                }));
+            } else {
+                whereClause.olfactory_family = { contains: family };
+            }
         }
         if (maxPrice) {
             whereClause.price = { lte: maxPrice };
@@ -62,11 +69,15 @@ export async function POST(req: NextRequest) {
 
         // 4. Kalkulasi TOPSIS
         const topsisService = new TopsisCalculationService();
-        const rankings = topsisService.calculate(evaluations, ahpWeights, criteriaTypes);
+        const { rankings, steps } = topsisService.calculate(evaluations, ahpWeights, criteriaTypes);
 
         // 5. Build responses
         const results = [];
         let rankOrder = 1;
+        
+        // Ambil 10 ID teratas untuk detail perhitungan
+        const top10Ids = Object.keys(rankings).slice(0, 10).map(id => Number(id));
+
         for (const [idStr, score] of Object.entries(rankings)) {
             const id = Number(idStr);
             const perfumeRecord = perfumes.find((p: any) => p.id === id);
@@ -83,7 +94,20 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({ success: true, rankings: results });
+        // Filter steps agar hanya berisi 10 data teratas (menghemat bandwith)
+        const filteredSteps = steps ? {
+            normalizedMatrix: Object.fromEntries(Object.entries(steps.normalizedMatrix).filter(([id]) => top10Ids.includes(Number(id)))),
+            weightedMatrix: Object.fromEntries(Object.entries(steps.weightedMatrix).filter(([id]) => top10Ids.includes(Number(id)))),
+            idealSolutions: steps.idealSolutions,
+            distances: Object.fromEntries(Object.entries(steps.distances).filter(([id]) => top10Ids.includes(Number(id)))),
+            preferenceScores: Object.fromEntries(Object.entries(steps.preferenceScores).filter(([id]) => top10Ids.includes(Number(id))))
+        } : null;
+
+        return NextResponse.json({ 
+            success: true, 
+            rankings: results,
+            calculationSteps: filteredSteps 
+        });
         
     } catch (e: any) {
         console.error("Error TOPSIS Engine:", e);

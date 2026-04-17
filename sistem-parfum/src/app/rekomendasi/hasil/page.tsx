@@ -5,14 +5,12 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
-interface PerfumeResult {
-  rank: number;
-  id: number;
-  name: string;
-  brand: string;
-  olfactory_family: string;
-  price: number;
-  score: number;
+interface CalculationSteps {
+  normalizedMatrix: Record<number, Record<string, number>>;
+  weightedMatrix: Record<number, Record<string, number>>;
+  idealSolutions: { positive: Record<string, number>, negative: Record<string, number> };
+  distances: Record<number, { pos: number, neg: number }>;
+  preferenceScores: Record<number, number>;
 }
 
 export default function HasilRekomendasi() {
@@ -21,10 +19,12 @@ export default function HasilRekomendasi() {
   const { data: session } = useSession();
   
   const [results, setResults] = useState<PerfumeResult[]>([]);
+  const [calcSteps, setCalcSteps] = useState<CalculationSteps | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [toastMsg, setToastMsg] = useState('');
+  const [openStep, setOpenStep] = useState<number | null>(null);
 
   // Fetch hasil rekomendasi
   useEffect(() => {
@@ -48,6 +48,7 @@ export default function HasilRekomendasi() {
         
         if (data.success) {
           setResults(data.rankings);
+          setCalcSteps(data.calculationSteps);
         } else {
           setError(data.message || 'Gagal mengambil data.');
         }
@@ -143,7 +144,8 @@ export default function HasilRekomendasi() {
             <p className="text-gray-400 mt-3 text-lg">Berdasarkan perhitungan metode AHP & TOPSIS</p>
         </div>
 
-        <div className="bg-gray-800/60 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border border-gray-700/50">
+        {/* Tabel Ranking Utama */}
+        <div className="bg-gray-800/60 backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden border border-gray-700/50 mb-16">
             <div className="overflow-x-auto">
               <table className="min-w-full leading-normal">
                   <thead>
@@ -162,7 +164,7 @@ export default function HasilRekomendasi() {
                           <tr key={perfume.id} className={`${perfume.rank === 1 ? 'bg-indigo-500/10' : ''} hover:bg-gray-700/30 transition duration-150`}>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
                                   <span className={`font-extrabold ${perfume.rank === 1 ? 'text-indigo-400 text-lg' : 'text-gray-200'}`}>
-                                      {perfume.rank === 1 ? '' : ''}#{perfume.rank}
+                                      #{perfume.rank}
                                   </span>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm">
@@ -212,6 +214,130 @@ export default function HasilRekomendasi() {
               </Link>
             </div>
         </div>
+
+        {/* Section Detail Perhitungan TOPSIS */}
+        {calcSteps && results.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-3xl font-extrabold text-white mb-8 text-center flex items-center justify-center gap-3">
+              <span className="bg-indigo-500/20 p-2 rounded-lg">📊</span>
+              Detail Perhitungan TOPSIS (Top 10)
+            </h2>
+
+            <div className="space-y-4">
+              {[
+                { title: 'Step 1: Matriks Normalisasi (R)', data: calcSteps.normalizedMatrix, desc: 'Mengubah nilai asli menjadi nilai berskala antara 0 dan 1.' },
+                { title: 'Step 2: Matriks Normalisasi Terbobot (Y)', data: calcSteps.weightedMatrix, desc: 'Mengalikan matriks normalisasi dengan bobot kriteria AHP.' },
+                { title: 'Step 3: Solusi Ideal Positif & Negatif', data: null, isIdeal: true },
+                { title: 'Step 4: Jarak Solusi & Preferensi Akhir (Ci)', data: calcSteps.distances, isFinal: true },
+              ].map((step, sIdx) => (
+                <div key={sIdx} className="bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-700/50 overflow-hidden text-sm">
+                  {/* Accordion Header */}
+                  <button
+                    onClick={() => setOpenStep(openStep === sIdx ? null : sIdx)}
+                    className={`w-full flex items-center justify-between px-6 py-4 text-left font-bold text-gray-200 hover:bg-gray-700/30 transition-all ${openStep === sIdx ? 'bg-indigo-500/10 text-indigo-300' : ''}`}
+                  >
+                    <span>{step.title}</span>
+                    <svg className={`w-5 h-5 transition-transform ${openStep === sIdx ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+
+                  {/* Accordion Content */}
+                  {openStep === sIdx && (
+                    <div className="p-6 overflow-x-auto border-t border-gray-700/30 bg-gray-900/40">
+                      {step.desc && <p className="text-gray-400 mb-4 italic text-xs">{step.desc}</p>}
+
+                      {step.data && !step.isFinal && (
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="text-gray-500 text-[10px] uppercase tracking-wider border-b border-gray-800">
+                              <th className="py-2">Parfum</th>
+                              <th className="py-2">Sillage</th>
+                              <th className="py-2">Projection</th>
+                              <th className="py-2">Longevity</th>
+                              <th className="py-2">Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(step.data).map(([idStr, vals]: [string, any]) => {
+                               const perf = results.find(p => p.id === Number(idStr));
+                               return (
+                                 <tr key={idStr} className="border-b border-gray-800/30 text-gray-300">
+                                   <td className="py-3 font-medium text-white">{perf?.name || 'Unknown'}</td>
+                                   <td className="py-3 font-mono">{vals.sillage.toFixed(4)}</td>
+                                   <td className="py-3 font-mono">{vals.projection.toFixed(4)}</td>
+                                   <td className="py-3 font-mono">{vals.longevity.toFixed(4)}</td>
+                                   <td className="py-3 font-mono">{vals.price.toFixed(4)}</td>
+                                 </tr>
+                               );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+
+                      {step.isIdeal && (
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10">
+                            <h4 className="text-indigo-400 font-bold mb-3">Solusi Ideal Positif (A+)</h4>
+                            <ul className="space-y-2 text-xs font-mono text-gray-300">
+                              {Object.entries(calcSteps.idealSolutions.positive).map(([k, v]) => (
+                                <li key={k} className="flex justify-between border-b border-gray-800 py-1">
+                                  <span className="uppercase">{k}</span>
+                                  <span>{v.toFixed(4)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/10">
+                            <h4 className="text-red-400 font-bold mb-3">Solusi Ideal Negatif (A-)</h4>
+                            <ul className="space-y-2 text-xs font-mono text-gray-300">
+                              {Object.entries(calcSteps.idealSolutions.negative).map(([k, v]) => (
+                                <li key={k} className="flex justify-between border-b border-gray-800 py-1">
+                                  <span className="uppercase">{k}</span>
+                                  <span>{v.toFixed(4)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+
+                      {step.isFinal && (
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="text-gray-500 text-[10px] uppercase tracking-wider border-b border-gray-800">
+                              <th className="py-2">Parfum</th>
+                              <th className="py-2">D+ (Jarak Positif)</th>
+                              <th className="py-2">D- (Jarak Negatif)</th>
+                              <th className="py-2 font-bold text-indigo-400">Ci (Skor Akhir)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(step.data).map(([idStr, distances]: [string, any]) => {
+                               const perf = results.find(p => p.id === Number(idStr));
+                               const score = calcSteps.preferenceScores[Number(idStr)];
+                               return (
+                                 <tr key={idStr} className="border-b border-gray-800/30 text-gray-300">
+                                   <td className="py-3 font-medium text-white">{perf?.name || 'Unknown'}</td>
+                                   <td className="py-3 font-mono text-red-300">{distances.pos.toFixed(4)}</td>
+                                   <td className="py-3 font-mono text-green-300">{distances.neg.toFixed(4)}</td>
+                                   <td className="py-3 font-mono font-extrabold text-indigo-300">{score.toFixed(4)}</td>
+                                 </tr>
+                               );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <p className="mt-8 text-center text-gray-500 text-xs max-w-2xl mx-auto leading-relaxed">
+              * Perhitungan di atas mencakup 10 alternatif teratas berdasarkan perbandingan kriteria dengan solusi ideal positif dan negatif.
+              Alternatif dengan skor Ci terdekat ke 1 (D- paling besar & D+ paling kecil) menjadi peringkat pertama.
+            </p>
+          </div>
+        )}
     </div>
   );
 }
