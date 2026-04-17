@@ -31,8 +31,8 @@ export default function RecommendationForm() {
 
   // form state
   const [family, setFamily] = useState('');
-  const [priceDisplay, setPriceDisplay] = useState(''); // tampilan "500.000"
-  const [hours, setHours] = useState('');                // input jam
+  const [priceDisplay, setPriceDisplay] = useState('');
+  const [hours, setHours] = useState('');
 
   useEffect(() => {
     fetch('/api/perfumes/families')
@@ -72,7 +72,7 @@ export default function RecommendationForm() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-700 border-t-indigo-500 rounded-full animate-spin" />
         <p className="text-gray-400 font-medium text-sm">Memuat data aroma…</p>
       </div>
     );
@@ -81,25 +81,25 @@ export default function RecommendationForm() {
   return (
     <div className="max-w-lg mx-auto px-4 py-16 sm:py-20">
       {/* Card */}
-      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-gray-800/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-700/50 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-500 px-8 py-10 text-center">
+        <div className="bg-gradient-to-br from-indigo-600/80 to-purple-600/80 px-8 py-10 text-center">
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Cari Parfum Idamanmu</h1>
-          <p className="text-indigo-100 mt-2 text-sm">Tentukan preferensi Anda, biarkan algoritma yang bekerja.</p>
+          <p className="text-indigo-200 mt-2 text-sm">Tentukan preferensi Anda, biarkan algoritma yang bekerja.</p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-7">
           {/* Keluarga Aroma */}
           <div>
-            <label htmlFor="olfactory_family" className="block text-gray-700 font-semibold mb-2 text-sm uppercase tracking-wide">
+            <label htmlFor="olfactory_family" className="block text-gray-300 font-semibold mb-2 text-sm uppercase tracking-wide">
               Keluarga Aroma
             </label>
             <select
               id="olfactory_family"
               value={family}
               onChange={(e) => setFamily(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl py-3.5 px-4 text-gray-800 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+              className="w-full border border-gray-600 rounded-xl py-3.5 px-4 text-gray-200 bg-gray-700/50 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
             >
               <option value="">Semua Aroma</option>
               {families.map((f, i) => (
@@ -110,7 +110,7 @@ export default function RecommendationForm() {
 
           {/* Budget */}
           <div>
-            <label htmlFor="max_price" className="block text-gray-700 font-semibold mb-2 text-sm uppercase tracking-wide">
+            <label htmlFor="max_price" className="block text-gray-300 font-semibold mb-2 text-sm uppercase tracking-wide">
               Budget Maksimal
             </label>
             <div className="relative">
@@ -122,15 +122,15 @@ export default function RecommendationForm() {
                 value={priceDisplay}
                 onChange={handlePriceChange}
                 placeholder="500.000"
-                className="w-full border border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-gray-800 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 font-mono text-lg tracking-wider"
+                className="w-full border border-gray-600 rounded-xl py-3.5 pl-12 pr-4 text-gray-200 bg-gray-700/50 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 font-mono text-lg tracking-wider placeholder-gray-500"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5 ml-1">Kosongkan jika tidak ingin membatasi budget.</p>
+            <p className="text-xs text-gray-500 mt-1.5 ml-1">Kosongkan jika tidak ingin membatasi budget.</p>
           </div>
 
           {/* Jam Ketahanan */}
           <div>
-            <label htmlFor="hours" className="block text-gray-700 font-semibold mb-2 text-sm uppercase tracking-wide">
+            <label htmlFor="hours" className="block text-gray-300 font-semibold mb-2 text-sm uppercase tracking-wide">
               Minimal Ketahanan Parfum
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -148,8 +148,8 @@ export default function RecommendationForm() {
                   className={`
                     flex flex-col items-center justify-center py-3 px-1 rounded-xl border-2 transition-all duration-200 cursor-pointer
                     ${hours === opt.value
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md shadow-indigo-100'
-                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-white'
+                      ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20'
+                      : 'border-gray-600 bg-gray-700/30 text-gray-400 hover:border-gray-500 hover:bg-gray-700/50'
                     }
                   `}
                 >
@@ -158,13 +158,13 @@ export default function RecommendationForm() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-1.5 ml-1">Kosongkan jika tidak ada preferensi ketahanan.</p>
+            <p className="text-xs text-gray-500 mt-1.5 ml-1">Kosongkan jika tidak ada preferensi ketahanan.</p>
           </div>
 
           {/* Submit */}
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-indigo-300/40 transition-all duration-300 text-base tracking-wide"
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all duration-300 text-base tracking-wide"
           >
             Cari Rekomendasi
           </button>

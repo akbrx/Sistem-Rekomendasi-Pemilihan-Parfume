@@ -3,11 +3,71 @@
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react';
 
+const aromaFamilies = [
+  {
+    name: 'Citrus',
+    emoji: '🍋',
+    color: 'from-yellow-500/20 to-orange-500/20 border-yellow-600/30',
+    desc: 'Keluarga aroma segar yang berasal dari buah-buahan sitrus seperti lemon, jeruk, bergamot, dan grapefruit. Cocok untuk cuaca panas dan aktivitas sehari-hari. Parfum citrus biasanya memiliki kesan ceria, energik, dan ringan.',
+    examples: 'Acqua di Gio, CK One, Versace Man Eau Fraiche',
+  },
+  {
+    name: 'Floral',
+    emoji: '🌸',
+    color: 'from-pink-500/20 to-rose-500/20 border-pink-600/30',
+    desc: 'Keluarga aroma paling klasik dan populer, didominasi oleh wangi bunga-bungaan seperti mawar, melati, lavender, dan lily. Floral sering digunakan sebagai heart notes dan memberikan kesan feminin, romantis, serta elegan.',
+    examples: 'Chanel No. 5, Miss Dior, Gucci Bloom',
+  },
+  {
+    name: 'Fougère',
+    emoji: '🌿',
+    color: 'from-green-500/20 to-emerald-500/20 border-green-600/30',
+    desc: 'Berasal dari bahasa Prancis yang berarti "pakis". Keluarga ini dicirikan oleh kombinasi lavender, oakmoss, dan coumarin. Fougère adalah tulang punggung parfum pria klasik — maskulin, segar, dan herbal.',
+    examples: 'Drakkar Noir, Brut, Cool Water',
+  },
+  {
+    name: 'Oriental',
+    emoji: '🕌',
+    color: 'from-amber-500/20 to-red-500/20 border-amber-600/30',
+    desc: 'Keluarga aroma yang hangat, kaya, dan sensual. Menggunakan bahan-bahan eksotis seperti vanila, amber, musk, rempah-rempah (kayu manis, cengkeh), dan kemenyan. Parfum oriental terkesan mewah dan misterius, cocok untuk malam hari.',
+    examples: 'Tom Ford Tobacco Vanille, Spicebomb, Shalimar',
+  },
+  {
+    name: 'Woody',
+    emoji: '🪵',
+    color: 'from-amber-700/20 to-yellow-900/20 border-amber-800/30',
+    desc: 'Keluarga aroma berbasis kayu seperti sandalwood, cedarwood, vetiver, oud, dan patchouli. Aroma woody memberikan kesan hangat, matang, berwibawa, dan maskulin. Sangat populer sebagai base notes.',
+    examples: 'Terre d\'Hermès, Bleu de Chanel, Oud Wood',
+  },
+  {
+    name: 'Fresh / Aquatic',
+    emoji: '🌊',
+    color: 'from-cyan-500/20 to-blue-500/20 border-cyan-600/30',
+    desc: 'Keluarga aroma yang mengingatkan pada udara segar, air laut, dan hujan. Menggunakan bahan sintetis seperti calone untuk menciptakan nuansa akuatik yang bersih dan menyegarkan. Sangat cocok untuk penggunaan harian dan iklim tropis.',
+    examples: 'Acqua di Gio Profondo, Light Blue, Nautica Voyage',
+  },
+  {
+    name: 'Gourmand',
+    emoji: '🍫',
+    color: 'from-rose-500/20 to-purple-500/20 border-rose-600/30',
+    desc: 'Keluarga aroma yang terinspirasi dari makanan dan manisan — vanila, cokelat, karamel, kopi, dan madu. Gourmand memberikan kesan manis, hangat, dan "enak dimakan". Populer untuk parfum unisex dan musim dingin.',
+    examples: 'Angel by Mugler, Black Opium, BDK Crème de Cuir',
+  },
+  {
+    name: 'Chypre',
+    emoji: '🌲',
+    color: 'from-teal-500/20 to-green-700/20 border-teal-600/30',
+    desc: 'Keluarga aroma sofistikasi yang dibangun di atas fondasi oakmoss, labdanum, dan bergamot. Chypre (diucapkan "sheep-ruh") memiliki karakter elegan, mewah, dan kompleks. Sering dianggap sebagai aroma untuk pecinta parfum sejati.',
+    examples: 'Mitsouko, Coco Mademoiselle, Aventus',
+  },
+];
+
 export default function Home() {
   const fullText = 'Selamat Datang di Parfume Suggest';
   const [displayText, setDisplayText] = useState('');
   const [done, setDone] = useState(false);
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
+  const [openAccordion, setOpenAccordion] = useState<number | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Typing effect — ketik sekali lalu berhenti
@@ -119,7 +179,7 @@ export default function Home() {
                 <span>📖</span> Sejarah & Definisi
               </h3>
               <p className="text-gray-300 leading-relaxed text-lg">
-                Kata parfum berasal dari bahasa Latin <i>per fumum</i> yang berarti "melalui asap". Selama ribuan tahun, manusia menggunakan campuran minyak esensial aromatik untuk menciptakan aroma tubuh yang memikat. Parfum modern tidak hanya sebagai pewangi, melainkan sebagai tanda pengenal (<i>signature scent</i>) karakter seseorang.
+                Kata parfum berasal dari bahasa Latin <i>per fumum</i> yang berarti &quot;melalui asap&quot;. Selama ribuan tahun, manusia menggunakan campuran minyak esensial aromatik untuk menciptakan aroma tubuh yang memikat. Parfum modern tidak hanya sebagai pewangi, melainkan sebagai tanda pengenal (<i>signature scent</i>) karakter seseorang.
               </p>
             </div>
 
@@ -165,6 +225,55 @@ export default function Home() {
                 <li><strong className="text-gray-200">Middle (Heart) Notes:</strong> Karakter utama dari parfum. Aroma sebenarnya. (Berlangsung 1-4 jam).</li>
                 <li><strong className="text-gray-200">Base Notes:</strong> Pondasi parfum yang mengunci aroma agar menempel lama di kulit. (Bertahan hingga seharian).</li>
               </ul>
+            </div>
+
+            {/* Card 4 — Accordion Keluarga Aroma */}
+            <div
+              ref={(el) => { cardRefs.current[3] = el; }}
+              data-idx="3"
+              className={`bg-gray-800 bg-opacity-60 backdrop-blur-xl rounded-3xl p-8 md:p-10 shadow-2xl border border-gray-700 transition-all duration-700 delay-[450ms] ${visibleCards.has(3) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+            >
+              <h3 className="text-2xl font-bold text-emerald-400 mb-2 flex items-center gap-3">
+                <span>🌺</span> Keluarga Aroma (Olfactory Families)
+              </h3>
+              <p className="text-gray-400 mb-6 text-sm">Klik salah satu untuk mempelajari karakteristiknya.</p>
+
+              <div className="space-y-3">
+                {aromaFamilies.map((family, idx) => (
+                  <div key={idx} className="rounded-2xl overflow-hidden border border-gray-700/50">
+                    {/* Accordion Header */}
+                    <button
+                      onClick={() => setOpenAccordion(openAccordion === idx ? null : idx)}
+                      className={`w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-300 ${
+                        openAccordion === idx
+                          ? 'bg-gradient-to-r ' + family.color + ' border-b border-gray-700/50'
+                          : 'bg-gray-700/30 hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{family.emoji}</span>
+                        <span className="font-bold text-white">{family.name}</span>
+                      </div>
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${openAccordion === idx ? 'rotate-180' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Accordion Body */}
+                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === idx ? 'max-h-60' : 'max-h-0'}`}>
+                      <div className="px-5 py-4 bg-gray-800/40">
+                        <p className="text-gray-300 text-sm leading-relaxed mb-3">{family.desc}</p>
+                        <p className="text-xs text-gray-500">
+                          <span className="text-indigo-400 font-semibold">Contoh parfum:</span> {family.examples}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
