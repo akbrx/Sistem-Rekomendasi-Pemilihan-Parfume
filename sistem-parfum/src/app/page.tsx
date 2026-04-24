@@ -63,7 +63,7 @@ const aromaFamilies = [
 ];
 
 export default function Home() {
-  const fullText = 'Selamat Datang di "ParfumeSuggest"';
+  const fullText = 'Selamat Datang di "PerfumeSuggest"';
   const [displayText, setDisplayText] = useState('');
   const [done, setDone] = useState(false);
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
@@ -113,7 +113,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-gray-900 overflow-hidden">
-      
+
       {/* Animated Background Blobs — Menutupi SELURUH halaman */}
       <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 -left-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
@@ -128,24 +128,24 @@ export default function Home() {
         <div className="text-center px-4 max-w-5xl mx-auto">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-               {displayText}
-               {!done && <span className="animate-pulse border-r-4 border-purple-400 ml-1"></span>}
+              {displayText}
+              {!done && <span className="animate-pulse border-r-4 border-purple-400 ml-1"></span>}
             </span>
           </h1>
-          
+
           <p className={`mt-6 font-medium text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed transition-opacity duration-700 ${done ? 'opacity-100' : 'opacity-0'}`}>
             Kami menyediakan web ini untuk membantu kalian menemukan parfum yang cocok untuk Anda dan memberikan pengetahuan tentang parfum.
           </p>
 
           <div className={`mt-12 flex flex-col sm:flex-row gap-5 justify-center items-center transition-opacity duration-700 delay-300 ${done ? 'opacity-100' : 'opacity-0'}`}>
-            <a href="#edukasi" onClick={scrollToEdukasi} 
-               className="w-full sm:w-auto px-8 py-4 bg-gray-800 bg-opacity-50 backdrop-blur-md border border-gray-600 text-white font-bold rounded-2xl hover:bg-gray-700 transition duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)] text-center group">
-                Pelajari Tentang Parfum
+            <a href="#edukasi" onClick={scrollToEdukasi}
+              className="w-full sm:w-auto px-8 py-4 bg-gray-800 bg-opacity-50 backdrop-blur-md border border-gray-600 text-white font-bold rounded-2xl hover:bg-gray-700 transition duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)] text-center group">
+              Pelajari Tentang Parfum
             </a>
-            
-            <Link href="/rekomendasi" 
-               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-extrabold rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition duration-300 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] text-center transform hover:scale-105">
-                Mulai Pencarian
+
+            <Link href="/rekomendasi"
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-extrabold rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition duration-300 shadow-[0_0_20px_rgba(99,102,241,0.4)] hover:shadow-[0_0_30px_rgba(99,102,241,0.6)] text-center transform hover:scale-105">
+              Mulai Pencarian
             </Link>
           </div>
 
@@ -308,11 +308,10 @@ export default function Home() {
                     {/* Accordion Header */}
                     <button
                       onClick={() => setOpenAccordion(openAccordion === idx ? null : idx)}
-                      className={`w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-300 ${
-                        openAccordion === idx
+                      className={`w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-300 ${openAccordion === idx
                           ? 'bg-gradient-to-r ' + family.color + ' border-b border-gray-700/50'
                           : 'bg-gray-700/30 hover:bg-gray-700/50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-xl">{family.emoji}</span>
