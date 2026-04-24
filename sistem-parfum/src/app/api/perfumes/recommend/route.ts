@@ -43,10 +43,10 @@ export async function POST(req: NextRequest) {
 
         // 2. Setup Bobot dan Tipe Topsis
         const ahpWeights = {
-            sillage: 0.2,
-            projection: 0.2,
-            longevity: 0.3,
-            price: 0.3
+            projection: 0.38,
+            longevity: 0.35,
+            price: 0.16,
+            sillage: 0.11
         };
 
         const criteriaTypes: Record<string, 'benefit' | 'cost'> = {

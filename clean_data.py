@@ -65,7 +65,7 @@ def map_sillage(text):
         return 3
 
 def main():
-    input_file = 'Parfume.csv'
+    input_file = 'data parfum.csv'
     if not os.path.exists(input_file):
         print(f"Error: File '{input_file}' tidak ditemukan di direktori saat ini.")
         sys.exit(1)
