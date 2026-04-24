@@ -36,28 +36,45 @@ async function main() {
         // 2. Family (Hapus emoji - Pertahankan huruf dari bahasa apapun termasuk aksen seperti è)
         const family = familyRaw.replace(/[^\p{L}\s,/\-.]/gu, '').replace(/\s+/g, ' ').trim();
 
-        // 3. Sillage Mapping (1-5)
+        // Helper function matching Python clean_data.py logic
+        const getAvg = (text) => {
+            const nums = text.match(/\d+(?:\.\d+)?/g);
+            if (!nums) return null;
+            const values = nums.map(Number);
+            return values.reduce((a, b) => a + b, 0) / values.length;
+        };
+
+        // 3. Sillage Mapping (1-5) - Matching map_sillage in clean_data.py
         let sillage = 3;
-        if (sillageStr.toLowerCase().includes('strong')) sillage = 5;
-        if (sillageStr.toLowerCase().includes('medium-strong')) sillage = 4;
-        if (sillageStr.toLowerCase().includes('medium')) sillage = 3;
-        if (sillageStr.toLowerCase().includes('weak')) sillage = 1;
+        const sLower = sillageStr.toLowerCase();
+        if (sLower.includes('strong') && sLower.includes('medium')) sillage = 4;
+        else if (sLower.includes('medium-strong') || sLower.includes('medium to strong')) sillage = 4;
+        else if (sLower.includes('strong') || sLower.includes('loud')) sillage = 5;
+        else if (sLower.includes('medium')) sillage = 3;
+        else if (sLower.includes('soft')) sillage = 2;
+        else if (sLower.includes('skin') || sLower.includes('awal')) sillage = 1;
 
-        // 4. Projection Mapping (1-5)
+        // 4. Projection Mapping (1-5) - Matching map_projection (avg-based)
         let projection = 3;
-        if (projectionStr.includes('3 m+')) projection = 5;
-        if (projectionStr.includes('2-3 m')) projection = 4;
-        if (projectionStr.includes('2 m') || projectionStr.includes('1.5-2.5 m')) projection = 3;
-        if (projectionStr.includes('1.5 m') || projectionStr.includes('1-1.5 m')) projection = 2;
-        if (projectionStr.includes('1 m')) projection = 1;
+        const projAvg = getAvg(projectionStr);
+        if (projAvg !== null) {
+            if (projAvg < 1.0) projection = 1;
+            else if (projAvg <= 1.5) projection = 2;
+            else if (projAvg <= 2.0) projection = 3;
+            else if (projAvg <= 3.0) projection = 4;
+            else projection = 5;
+        }
 
-        // 5. Longevity Mapping (1-5)
+        // 5. Longevity Mapping (1-5) - Matching map_longevity (avg-based)
         let longevity = 3;
-        if (longevityStr.includes('12+') || longevityStr.includes('12 hours')) longevity = 5;
-        if (longevityStr.includes('8-12') || longevityStr.includes('8-10') || longevityStr.includes('7-10')) longevity = 4;
-        if (longevityStr.includes('6-8') || longevityStr.includes('5-7') || longevityStr.includes('6-7')) longevity = 3;
-        if (longevityStr.includes('4-6') || longevityStr.includes('4-5') || longevityStr.includes('5-6')) longevity = 2;
-        if (longevityStr.includes('2-3') || longevityStr.includes('2-4')) longevity = 1;
+        const longAvg = getAvg(longevityStr);
+        if (longAvg !== null) {
+            if (longAvg < 4) longevity = 1;
+            else if (longAvg <= 6) longevity = 2;
+            else if (longAvg <= 8) longevity = 3;
+            else if (longAvg <= 10) longevity = 4;
+            else longevity = 5;
+        }
 
         perfumesToInsert.push({
             name,
