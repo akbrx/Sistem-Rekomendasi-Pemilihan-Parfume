@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState, useRef } from 'react';
 
 const aromaFamilies = [
@@ -10,6 +11,7 @@ const aromaFamilies = [
     color: 'from-yellow-500/20 to-orange-500/20 border-yellow-600/30',
     desc: 'Keluarga aroma segar yang berasal dari buah-buahan sitrus seperti lemon, jeruk, bergamot, dan grapefruit. Cocok untuk cuaca panas dan aktivitas sehari-hari. Parfum citrus biasanya memiliki kesan ceria, energik, dan ringan.',
     examples: 'Acqua di Gio, CK One, Versace Man Eau Fraiche',
+    image: '/foto-aroma/IMG_0037.jpg',
   },
   {
     name: 'Floral',
@@ -17,6 +19,7 @@ const aromaFamilies = [
     color: 'from-pink-500/20 to-rose-500/20 border-pink-600/30',
     desc: 'Keluarga aroma paling klasik dan populer, didominasi oleh wangi bunga-bungaan seperti mawar, melati, lavender, dan lily. Floral sering digunakan sebagai heart notes dan memberikan kesan feminin, romantis, serta elegan.',
     examples: 'Chanel No. 5, Miss Dior, Gucci Bloom',
+    image: '/foto-aroma/IMG_0038.jpg',
   },
   {
     name: 'Fougère',
@@ -24,6 +27,7 @@ const aromaFamilies = [
     color: 'from-green-500/20 to-emerald-500/20 border-green-600/30',
     desc: 'Berasal dari bahasa Prancis yang berarti "pakis". Keluarga ini dicirikan oleh kombinasi lavender, oakmoss, dan coumarin. Fougère adalah tulang punggung parfum pria klasik — maskulin, segar, dan herbal.',
     examples: 'Drakkar Noir, Brut, Cool Water',
+    image: '/foto-aroma/IMG_0039.jpg',
   },
   {
     name: 'Oriental',
@@ -31,6 +35,7 @@ const aromaFamilies = [
     color: 'from-amber-500/20 to-red-500/20 border-amber-600/30',
     desc: 'Keluarga aroma yang hangat, kaya, dan sensual. Menggunakan bahan-bahan eksotis seperti vanila, amber, musk, rempah-rempah (kayu manis, cengkeh), dan kemenyan. Parfum oriental terkesan mewah dan misterius, cocok untuk malam hari.',
     examples: 'Tom Ford Tobacco Vanille, Spicebomb, Shalimar',
+    image: '/foto-aroma/IMG_0043.jpg',
   },
   {
     name: 'Woody',
@@ -38,6 +43,7 @@ const aromaFamilies = [
     color: 'from-amber-700/20 to-yellow-900/20 border-amber-800/30',
     desc: 'Keluarga aroma berbasis kayu seperti sandalwood, cedarwood, vetiver, oud, dan patchouli. Aroma woody memberikan kesan hangat, matang, berwibawa, dan maskulin. Sangat populer sebagai base notes.',
     examples: 'Terre d\'Hermès, Bleu de Chanel, Oud Wood',
+    image: '/foto-aroma/IMG_0044.jpg',
   },
   {
     name: 'Fresh / Aquatic',
@@ -45,6 +51,7 @@ const aromaFamilies = [
     color: 'from-cyan-500/20 to-blue-500/20 border-cyan-600/30',
     desc: 'Keluarga aroma yang mengingatkan pada udara segar, air laut, dan hujan. Menggunakan bahan sintetis seperti calone untuk menciptakan nuansa akuatik yang bersih dan menyegarkan. Sangat cocok untuk penggunaan harian dan iklim tropis.',
     examples: 'Acqua di Gio Profondo, Light Blue, Nautica Voyage',
+    image: '/foto-aroma/IMG_0046.jpg',
   },
   {
     name: 'Gourmand',
@@ -52,13 +59,7 @@ const aromaFamilies = [
     color: 'from-rose-500/20 to-purple-500/20 border-rose-600/30',
     desc: 'Keluarga aroma yang terinspirasi dari makanan dan manisan — vanila, cokelat, karamel, kopi, dan madu. Gourmand memberikan kesan manis, hangat, dan "enak dimakan". Populer untuk parfum unisex dan musim dingin.',
     examples: 'Angel by Mugler, Black Opium, BDK Crème de Cuir',
-  },
-  {
-    name: 'Chypre',
-    emoji: '🌲',
-    color: 'from-teal-500/20 to-green-700/20 border-teal-600/30',
-    desc: 'Keluarga aroma sofistikasi yang dibangun di atas fondasi oakmoss, labdanum, dan bergamot. Chypre (diucapkan "sheep-ruh") memiliki karakter elegan, mewah, dan kompleks. Sering dianggap sebagai aroma untuk pecinta parfum sejati.',
-    examples: 'Mitsouko, Coco Mademoiselle, Aventus',
+    image: '/foto-aroma/IMG_0047.jpg',
   },
 ];
 
@@ -309,8 +310,8 @@ export default function Home() {
                     <button
                       onClick={() => setOpenAccordion(openAccordion === idx ? null : idx)}
                       className={`w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-300 ${openAccordion === idx
-                          ? 'bg-gradient-to-r ' + family.color + ' border-b border-gray-700/50'
-                          : 'bg-gray-700/30 hover:bg-gray-700/50'
+                        ? 'bg-gradient-to-r ' + family.color + ' border-b border-gray-700/50'
+                        : 'bg-gray-700/30 hover:bg-gray-700/50'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -326,8 +327,20 @@ export default function Home() {
                     </button>
 
                     {/* Accordion Body */}
-                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === idx ? 'max-h-60' : 'max-h-0'}`}>
+                    <div className={`overflow-hidden transition-all duration-300 ${openAccordion === idx ? 'max-h-[420px]' : 'max-h-0'}`}>
                       <div className="px-5 py-4 bg-gray-800/40">
+                        {/* Gambar Keluarga Aroma */}
+                        <div className="relative w-full h-40 sm:h-48 mb-4 rounded-xl overflow-hidden">
+                          <Image
+                            src={family.image}
+                            alt={`Ilustrasi aroma ${family.name}`}
+                            fill
+                            className="object-cover transition-transform duration-500 hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, 700px"
+                          />
+                          {/* Gradient overlay agar teks di bawah tidak bentrok */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent" />
+                        </div>
                         <p className="text-gray-300 text-sm leading-relaxed mb-3">{family.desc}</p>
                         <p className="text-xs text-gray-500">
                           <span className="text-indigo-400 font-semibold">Contoh parfum:</span> {family.examples}
