@@ -13,15 +13,16 @@ export default function NavbarAuth() {
   }
 
   if (!session) {
-    // Guest
+    // Guest - Show Login Button
     return (
-      <Link href="/login" className="flex items-center gap-2 group">
-        <div className="w-8 h-8 rounded-full bg-gray-700 border border-gray-600 flex items-center justify-center">
-          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-          </svg>
-        </div>
-        <span className="text-gray-400 text-sm font-medium group-hover:text-indigo-400 transition">Guest</span>
+      <Link
+        href="/login"
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium text-xs sm:text-sm shadow-md hover:shadow-indigo-500/25 transition duration-150"
+      >
+        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+        <span>Masuk</span>
       </Link>
     );
   }

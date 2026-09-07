@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Link from 'next/link';
 import AuthProvider from '@/components/AuthProvider';
-import NavbarAuth from '@/components/NavbarAuth';
+import Navbar from '@/components/Navbar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,26 +20,8 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${inter.className} bg-gray-900 flex flex-col min-h-screen text-white`}>
         <AuthProvider>
-          {/* Top Navbar */}
-          <nav className="bg-gray-900/80 backdrop-blur-md border-b border-gray-700/50 sticky top-0 z-50">
-            <div className="w-full px-6 sm:px-10 lg:px-12">
-              <div className="flex justify-between items-center h-16">
-                <div className="flex-shrink-0 flex items-center">
-                  <Link href="/" className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 tracking-tight hover:opacity-80 transition">
-                    PerfumeSuggest
-                  </Link>
-                </div>
-                <div className="hidden md:flex items-center space-x-8">
-                  <Link href="/" className="text-gray-300 hover:text-indigo-400 font-medium transition duration-150">Home</Link>
-                  <Link href="/#edukasi" className="text-gray-300 hover:text-indigo-400 font-medium transition duration-150">Tentang</Link>
-                  <Link href="/rekomendasi" className="text-gray-300 hover:text-indigo-400 font-medium transition duration-150">Rekomendasi</Link>
-                  <div className="ml-4 pl-4 border-l border-gray-700">
-                    <NavbarAuth />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </nav>
+          {/* Responsive Top Navbar */}
+          <Navbar />
 
           {/* Main Content */}
           <main className="flex-grow">
