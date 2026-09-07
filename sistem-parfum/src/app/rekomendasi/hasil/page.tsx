@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 interface CalculationSteps {
   normalizedMatrix: Record<number, Record<string, number>>;
@@ -29,7 +31,7 @@ interface PerfumeResult {
   matchesPreference: boolean;
 }
 
-export default function HasilRekomendasi() {
+function HasilRekomendasiContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -394,5 +396,18 @@ export default function HasilRekomendasi() {
           </div>
         )}
     </div>
+  );
+}
+
+export default function HasilRekomendasi() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[50vh] flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-gray-700 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-400 font-medium">Memuat Hasil...</p>
+      </div>
+    }>
+      <HasilRekomendasiContent />
+    </Suspense>
   );
 }
