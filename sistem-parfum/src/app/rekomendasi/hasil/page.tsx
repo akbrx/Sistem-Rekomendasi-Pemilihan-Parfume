@@ -13,6 +13,22 @@ interface CalculationSteps {
   preferenceScores: Record<number, number>;
 }
 
+interface PerfumeResult {
+  rank: number;
+  id: number;
+  name: string;
+  brand: string;
+  olfactory_family: string;
+  price: number;
+  sillage: number;
+  projection: number;
+  longevity: number;
+  score: number;
+  rawScore: number;
+  penalty: number;
+  matchesPreference: boolean;
+}
+
 export default function HasilRekomendasi() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,13 +47,17 @@ export default function HasilRekomendasi() {
     const fetchData = async () => {
       try {
         const formData = new FormData();
-        const family = searchParams.get('olfactory_family');
+        const families = searchParams.get('olfactory_families');
         const maxPrice = searchParams.get('max_price');
-        const minLongevity = searchParams.get('min_longevity');
+        const prefSillage = searchParams.get('pref_sillage');
+        const prefProjection = searchParams.get('pref_projection');
+        const prefLongevity = searchParams.get('pref_longevity');
 
-        if(family) formData.append('olfactory_family', family);
-        if(maxPrice) formData.append('max_price', maxPrice);
-        if(minLongevity) formData.append('min_longevity', minLongevity);
+        if (families) formData.append('olfactory_families', families);
+        if (maxPrice) formData.append('max_price', maxPrice);
+        if (prefSillage) formData.append('pref_sillage', prefSillage);
+        if (prefProjection) formData.append('pref_projection', prefProjection);
+        if (prefLongevity) formData.append('pref_longevity', prefLongevity);
 
         const res = await fetch('/api/perfumes/recommend', {
           method: 'POST',
@@ -153,19 +173,33 @@ export default function HasilRekomendasi() {
                           <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Rank</th>
                           <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Nama Parfum</th>
                           <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Brand</th>
-                          <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Keluarga Aroma</th>
+                          <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Aroma</th>
                           <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Harga</th>
+                          <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">💨 Sil</th>
+                          <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">📡 Proj</th>
+                          <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">⏳ Long</th>
                           <th className="px-6 py-4 border-b border-gray-700 bg-gray-800/80 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Skor (Ci)</th>
                           <th className="px-4 py-4 border-b border-gray-700 bg-gray-800/80 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">Favorit</th>
                       </tr>
                   </thead>
                   <tbody>
                       {results.map((perfume) => (
-                          <tr key={perfume.id} className={`${perfume.rank === 1 ? 'bg-indigo-500/10' : ''} hover:bg-gray-700/30 transition duration-150`}>
+                          <tr key={perfume.id} className={`${
+                            perfume.rank === 1 ? 'bg-indigo-500/10' : 
+                            perfume.matchesPreference ? 'bg-emerald-500/5' : ''
+                          } hover:bg-gray-700/30 transition duration-150`}>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
+                                <div className="flex flex-col items-start gap-1">
                                   <span className={`font-extrabold ${perfume.rank === 1 ? 'text-indigo-400 text-lg' : 'text-gray-200'}`}>
-                                      #{perfume.rank}
+                                    #{perfume.rank}
                                   </span>
+                                  {perfume.matchesPreference && (
+                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">✓ Cocok</span>
+                                  )}
+                                  {!perfume.matchesPreference && perfume.penalty > 0 && (
+                                    <span className="text-[9px] bg-orange-500/15 text-orange-400 border border-orange-500/25 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">-{perfume.penalty}%</span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm">
                                   <p className="text-white font-bold">{perfume.name}</p>
@@ -176,11 +210,32 @@ export default function HasilRekomendasi() {
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm">
                                   <span className="relative inline-block px-3 py-1 font-semibold text-indigo-300 leading-tight">
                                       <span aria-hidden className="absolute inset-0 bg-indigo-500/20 border border-indigo-500/30 rounded-full"></span>
-                                      <span className="relative">{perfume.olfactory_family}</span>
+                                      <span className="relative text-xs">{perfume.olfactory_family}</span>
                                   </span>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
                                   <p className="text-gray-200 font-medium">Rp {perfume.price.toLocaleString('id-ID')}</p>
+                              </td>
+                              <td className="px-6 py-5 border-b border-gray-700/50 text-sm text-center">
+                                <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                                  perfume.sillage >= 4 ? 'bg-indigo-500/30 text-indigo-300' :
+                                  perfume.sillage >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                                  'bg-gray-700/50 text-gray-500'
+                                }`}>{perfume.sillage}</span>
+                              </td>
+                              <td className="px-6 py-5 border-b border-gray-700/50 text-sm text-center">
+                                <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                                  perfume.projection >= 4 ? 'bg-cyan-500/30 text-cyan-300' :
+                                  perfume.projection >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                                  'bg-gray-700/50 text-gray-500'
+                                }`}>{perfume.projection}</span>
+                              </td>
+                              <td className="px-6 py-5 border-b border-gray-700/50 text-sm text-center">
+                                <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                                  perfume.longevity >= 4 ? 'bg-amber-500/30 text-amber-300' :
+                                  perfume.longevity >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                                  'bg-gray-700/50 text-gray-500'
+                                }`}>{perfume.longevity}</span>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
                                   <p className="text-indigo-300 font-mono font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded inline-block">{perfume.score.toFixed(4)}</p>
