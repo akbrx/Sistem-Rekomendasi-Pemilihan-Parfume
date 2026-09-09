@@ -53,19 +53,21 @@ interface SliderFieldProps {
 }
 
 function SliderField({ id, label, description, value, onChange, labels, icon }: SliderFieldProps) {
-  const displayLabels = label!;
+  const displayLabels = labels || {};
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between">
         <div>
-          <label htmlFor={id} className="flex items-center gap-2 text-gray-200 font-semibold text-sm uppercase tracking-wide">
-            <span className="text-lg">{icon}</span>
-            {label}
-          </label>
-          <p className="text-gray-500 text-xs mt-0.5">{description}</p>
+          {label && (
+            <label htmlFor={id} className="flex items-center gap-2 text-gray-200 font-semibold text-sm uppercase tracking-wide">
+              <span className="text-lg">{icon}</span>
+              {label}
+            </label>
+          )}
+          {description && <p className="text-gray-500 text-xs mt-0.5">{description}</p>}
         </div>
         <div className="text-right shrink-0 ml-4">
-          <span className="text-indigo-400 font-bold text-sm">{displayLabels[value]}</span>
+          <span className="text-indigo-400 font-bold text-sm">{displayLabels[value] || ''}</span>
           <div className="text-gray-600 text-xs">Skala {value}/5</div>
         </div>
       </div>
@@ -422,13 +424,13 @@ export default function RecommendationForm() {
                     <span className="text-xs bg-green-500/15 text-green-300 border border-green-500/25 rounded-full px-2.5 py-1">💰 Max Rp {priceDisplay}</span>
                   )}
                   {enableSillage && (
-                    <span className="text-xs bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-full px-2.5 py-1">💨 Sillage ≥ {sillage}</span>
+                    <span className="text-xs bg-blue-500/15 text-blue-300 border border-blue-500/25 rounded-full px-2.5 py-1">💨 Sillage: {sillage}</span>
                   )}
                   {enableProjection && (
-                    <span className="text-xs bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 rounded-full px-2.5 py-1">📡 Projection ≥ {projection}</span>
+                    <span className="text-xs bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 rounded-full px-2.5 py-1">📡 Projection: {projection}</span>
                   )}
                   {enableLongevity && (
-                    <span className="text-xs bg-amber-500/15 text-amber-300 border border-amber-500/25 rounded-full px-2.5 py-1">⏳ Longevity ≥ {longevity}</span>
+                    <span className="text-xs bg-amber-500/15 text-amber-300 border border-amber-500/25 rounded-full px-2.5 py-1">⏳ Longevity: {longevity}</span>
                   )}
                 </div>
               </div>

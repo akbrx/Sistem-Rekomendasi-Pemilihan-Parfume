@@ -67,7 +67,6 @@ function getBrandCatalogUrl(brand: string): string {
     'loewe': 'https://www.loewe.com/int/en/fragrances/',
     'miu miu': 'https://www.miumiu.com/us/en/beauty/fragrances.html',
     'chloe': 'https://www.chloe.com/us/fragrances',
-    'chloe': 'https://www.chloe.com/us/fragrances',
     'bottega veneta': 'https://www.bottegaveneta.com/en-us/beauty/fragrance',
     'ferragamo': 'https://www.ferragamo.com/us/en/parfum/',
     'salvatore ferragamo': 'https://www.ferragamo.com/us/en/parfum/',

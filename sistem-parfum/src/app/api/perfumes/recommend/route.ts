@@ -37,22 +37,22 @@ function calcPenalty(params: {
         }
     }
 
-    // ─── Penalty Sillage (max 0.15) ─────────────────────────────────────────────
+    // ─── Penalty Sillage (max 0.20) ─────────────────────────────────────────────
     if (prefSillage !== null) {
-        const diff = Math.max(0, prefSillage - Number(perfume.sillage)); // berapa kurang
-        penalty += (diff / 4) * 0.15; // diff maks = 4 (mis. prefer 5, parfum=1)
+        const diff = Math.abs(prefSillage - Number(perfume.sillage)); // selisih absolut dari preferensi
+        penalty += (diff / 4) * 0.20; // diff maks = 4 (mis. prefer 1, parfum=5)
     }
 
-    // ─── Penalty Projection (max 0.15) ──────────────────────────────────────────
+    // ─── Penalty Projection (max 0.20) ──────────────────────────────────────────
     if (prefProjection !== null) {
-        const diff = Math.max(0, prefProjection - Number(perfume.projection));
-        penalty += (diff / 4) * 0.15;
+        const diff = Math.abs(prefProjection - Number(perfume.projection));
+        penalty += (diff / 4) * 0.20;
     }
 
-    // ─── Penalty Longevity (max 0.15) ───────────────────────────────────────────
+    // ─── Penalty Longevity (max 0.20) ───────────────────────────────────────────
     if (prefLongevity !== null) {
-        const diff = Math.max(0, prefLongevity - Number(perfume.longevity));
-        penalty += (diff / 4) * 0.15;
+        const diff = Math.abs(prefLongevity - Number(perfume.longevity));
+        penalty += (diff / 4) * 0.20;
     }
 
     return penalty; // total antara 0 – 1.0
@@ -98,13 +98,21 @@ export async function POST(req: NextRequest) {
             price: 'cost',
         };
 
-        // ─── 3. Format Evaluation Matrix ─────────────────────────────────────────
+        // ─── 3. Format Evaluation Matrix (Target-Matching berdasarkan preferensi pengguna) ───
+        // Jika user memilih preferensi (misal prefSillage = 2), parfum yang paling mendekati target
+        // akan mendapat nilai tertinggi (5 - selisih), sehingga otomatis menjadi Solusi Ideal Positif di TOPSIS.
         const evaluations: EvaluationMatrix = {};
         for (const p of perfumes) {
             evaluations[p.id] = {
-                sillage: Number(p.sillage),
-                projection: Number(p.projection),
-                longevity: Number(p.longevity),
+                sillage: prefSillage !== null 
+                    ? (5 - Math.abs(prefSillage - Number(p.sillage))) 
+                    : Number(p.sillage),
+                projection: prefProjection !== null 
+                    ? (5 - Math.abs(prefProjection - Number(p.projection))) 
+                    : Number(p.projection),
+                longevity: prefLongevity !== null 
+                    ? (5 - Math.abs(prefLongevity - Number(p.longevity))) 
+                    : Number(p.longevity),
                 price: Number(p.price),
             };
         }
