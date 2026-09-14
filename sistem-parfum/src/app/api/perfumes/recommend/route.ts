@@ -5,19 +5,56 @@ import { TopsisCalculationService, EvaluationMatrix } from '@/lib/topsis';
 export const dynamic = 'force-dynamic';
 
 /**
- * Hitung soft-penalty score (0.0 – 1.0).
+ * Hitung over-budget penalty score (0.0 – 1.0).
+ * Penalti progresif berdasarkan persentase kelebihan harga dari budget:
+ *  - ≤ 10% kelebihan  → penalti 15%   (masih bisa ditolerir)
+ *  - 10–30% kelebihan → penalti 40%   (agak mahal)
+ *  - 30–50% kelebihan → penalti 65%   (cukup mahal)
+ *  - 50–100% kelebihan→ penalti 80%   (mahal)
+ *  - > 100% kelebihan → penalti 92%   (jauh di luar budget)
+ */
+function calcBudgetPenalty(price: number, maxPrice: number): number {
+    if (price <= maxPrice) return 0;
+
+    const overshoot = (price - maxPrice) / maxPrice; // 0.1 = 10% lebih mahal
+
+    if (overshoot <= 0.10) return 0.15;
+    if (overshoot <= 0.30) return 0.40;
+    if (overshoot <= 0.50) return 0.65;
+    if (overshoot <= 1.00) return 0.80;
+    return 0.92; // > 2x lipat dari budget
+}
+
+/**
+ * Hitung in-budget boost multiplier (1.0 – 1.30).
+ * Parfum yang harganya ≤ maxPrice mendapat kenaikan prioritas,
+ * terutama yang mendekati nilai budget (lebih dimaksimalkan penggunaannya).
+ */
+function calcBudgetBoost(price: number, maxPrice: number): number {
+    if (price > maxPrice) return 1.0; // tidak ada boost jika over-budget
+
+    // Parfum semakin mendekati budget → boost lebih tinggi (ideal = 80-100% dari budget)
+    const usageRatio = price / maxPrice; // 0 = gratis, 1.0 = tepat budget
+
+    if (usageRatio >= 0.80) return 1.30; // 80–100% dari budget → boost +30%
+    if (usageRatio >= 0.50) return 1.20; // 50–80% dari budget → boost +20%
+    if (usageRatio >= 0.25) return 1.10; // 25–50% dari budget → boost +10%
+    return 1.05; // < 25% dari budget → boost +5% (sangat murah, mungkin kurang)
+}
+
+/**
+ * Hitung soft-penalty score (0.0 – 1.0) untuk kriteria non-harga.
  * 0.0 = tidak ada penalti (sesuai preferensi)
  * Makin besar = makin jauh dari preferensi
  */
-function calcPenalty(params: {
+function calcPreferencePenalty(params: {
     perfume: any;
     prefFamilies: string[];
-    maxPrice: number | null;
     prefSillage: number | null;
     prefProjection: number | null;
     prefLongevity: number | null;
 }): number {
-    const { perfume, prefFamilies, maxPrice, prefSillage, prefProjection, prefLongevity } = params;
+    const { perfume, prefFamilies, prefSillage, prefProjection, prefLongevity } = params;
     let penalty = 0;
 
     // ─── Penalty Aroma (max 0.30) ───────────────────────────────────────────────
@@ -27,20 +64,10 @@ function calcPenalty(params: {
         if (!matched) penalty += 0.30;
     }
 
-    // ─── Penalty Budget (max 0.25) ──────────────────────────────────────────────
-    if (maxPrice !== null) {
-        const price = Number(perfume.price);
-        if (price > maxPrice) {
-            // Penalti proporsional, makin jauh dari budget makin besar (cap di 0.25)
-            const overshoot = (price - maxPrice) / maxPrice; // ratio kelebihan
-            penalty += Math.min(overshoot * 0.25, 0.25);
-        }
-    }
-
     // ─── Penalty Sillage (max 0.20) ─────────────────────────────────────────────
     if (prefSillage !== null) {
-        const diff = Math.abs(prefSillage - Number(perfume.sillage)); // selisih absolut dari preferensi
-        penalty += (diff / 4) * 0.20; // diff maks = 4 (mis. prefer 1, parfum=5)
+        const diff = Math.abs(prefSillage - Number(perfume.sillage));
+        penalty += (diff / 4) * 0.20;
     }
 
     // ─── Penalty Projection (max 0.20) ──────────────────────────────────────────
@@ -55,7 +82,27 @@ function calcPenalty(params: {
         penalty += (diff / 4) * 0.20;
     }
 
-    return penalty; // total antara 0 – 1.0
+    return penalty; // total antara 0 – 0.90
+}
+
+/**
+ * Hitung total penalty gabungan (budget + preferensi) untuk keperluan badge UI.
+ */
+function calcTotalPenaltyForBadge(params: {
+    perfume: any;
+    prefFamilies: string[];
+    maxPrice: number | null;
+    prefSillage: number | null;
+    prefProjection: number | null;
+    prefLongevity: number | null;
+}): number {
+    const { perfume, prefFamilies, maxPrice, prefSillage, prefProjection, prefLongevity } = params;
+    
+    const prefPenalty = calcPreferencePenalty({ perfume, prefFamilies, prefSillage, prefProjection, prefLongevity });
+    const budgetPenaltyValue = maxPrice !== null ? calcBudgetPenalty(Number(perfume.price), maxPrice) : 0;
+    
+    // Gabungkan: budget penalty lebih dominan jika aktif
+    return Math.min(prefPenalty + budgetPenaltyValue * 0.5, 1.0);
 }
 
 export async function POST(req: NextRequest) {
@@ -84,18 +131,32 @@ export async function POST(req: NextRequest) {
         }
 
         // ─── 2. Setup Bobot AHP dan Tipe Kriteria ─────────────────────────────────
-        const ahpWeights = {
-            projection: 0.38,
-            longevity: 0.35,
-            price: 0.16,
-            sillage: 0.11,
-        };
+        // Jika user mengaktifkan budget, bobot harga dinaikkan secara proporsional
+        // agar TOPSIS secara organik memfavoritkan parfum yang ramah kantong.
+        let ahpWeights: Record<string, number>;
+        if (maxPrice !== null) {
+            // Budget aktif → naikkan bobot price, turunkan bobot performa secara proporsional
+            ahpWeights = {
+                projection: 0.28,
+                longevity: 0.27,
+                price:     0.35, // dari 0.16 → 0.35 saat budget aktif
+                sillage:   0.10,
+            };
+        } else {
+            // Default: bobot AHP tanpa pertimbangan budget
+            ahpWeights = {
+                projection: 0.38,
+                longevity:  0.35,
+                price:      0.16,
+                sillage:    0.11,
+            };
+        }
 
         const criteriaTypes: Record<string, 'benefit' | 'cost'> = {
-            sillage: 'benefit',
+            sillage:    'benefit',
             projection: 'benefit',
-            longevity: 'benefit',
-            price: 'cost',
+            longevity:  'benefit',
+            price:      'cost',
         };
 
         // ─── 3. Format Evaluation Matrix (Target-Matching berdasarkan preferensi pengguna) ───
@@ -104,14 +165,14 @@ export async function POST(req: NextRequest) {
         const evaluations: EvaluationMatrix = {};
         for (const p of perfumes) {
             evaluations[p.id] = {
-                sillage: prefSillage !== null 
-                    ? (5 - Math.abs(prefSillage - Number(p.sillage))) 
+                sillage: prefSillage !== null
+                    ? (5 - Math.abs(prefSillage - Number(p.sillage)))
                     : Number(p.sillage),
-                projection: prefProjection !== null 
-                    ? (5 - Math.abs(prefProjection - Number(p.projection))) 
+                projection: prefProjection !== null
+                    ? (5 - Math.abs(prefProjection - Number(p.projection)))
                     : Number(p.projection),
-                longevity: prefLongevity !== null 
-                    ? (5 - Math.abs(prefLongevity - Number(p.longevity))) 
+                longevity: prefLongevity !== null
+                    ? (5 - Math.abs(prefLongevity - Number(p.longevity)))
                     : Number(p.longevity),
                 price: Number(p.price),
             };
@@ -121,25 +182,39 @@ export async function POST(req: NextRequest) {
         const topsisService = new TopsisCalculationService();
         const { rankings, steps } = topsisService.calculate(evaluations, ahpWeights, criteriaTypes);
 
-        // ─── 5. Terapkan Soft-Penalty ke skor TOPSIS ─────────────────────────────
-        const penaltyWeight = 0.85; // bobot penalti tinggi (0.85) agar parfum yang cocok dengan preferensi pengguna diprioritaskan di posisi teratas
+        // ─── 5. Terapkan Budget Penalty & Boost + Preference Penalty ke skor TOPSIS ─
+        const prefPenaltyWeight = 0.70; // bobot penalti preferensi (aroma, sillage, dll.)
 
         const adjustedScores: Record<number, number> = {};
         for (const [idStr, rawScore] of Object.entries(rankings as Record<string, number>)) {
             const id = Number(idStr);
             const perfumeRecord = perfumes.find((p) => p.id === id)!;
+            const price = Number(perfumeRecord.price);
 
-            const penalty = calcPenalty({
+            // Hitung penalti preferensi non-harga
+            const prefPenalty = calcPreferencePenalty({
                 perfume: perfumeRecord,
                 prefFamilies,
-                maxPrice,
                 prefSillage,
                 prefProjection,
                 prefLongevity,
             });
 
-            // Skor akhir = TOPSIS_score × (1 - penalty × penaltyWeight)
-            adjustedScores[id] = (rawScore as number) * (1 - penalty * penaltyWeight);
+            let score = (rawScore as number) * (1 - prefPenalty * prefPenaltyWeight);
+
+            if (maxPrice !== null) {
+                if (price > maxPrice) {
+                    // ── Parfum Over-Budget: penalti progresif ──
+                    const budgetPen = calcBudgetPenalty(price, maxPrice);
+                    score = score * (1 - budgetPen);
+                } else {
+                    // ── Parfum In-Budget: berikan boost prioritas ──
+                    const boost = calcBudgetBoost(price, maxPrice);
+                    score = score * boost;
+                }
+            }
+
+            adjustedScores[id] = score;
         }
 
         // ─── 6. Sort berdasarkan adjusted score ──────────────────────────────────
@@ -158,8 +233,10 @@ export async function POST(req: NextRequest) {
             const rawTopsisScore = (rankings as Record<string, number>)[idStr] || 0;
 
             if (perfumeRecord) {
-                // Tentukan apakah parfum ini "sesuai" preferensi (untuk badge UI)
-                const penalty = calcPenalty({
+                const price = Number(perfumeRecord.price);
+
+                // Hitung penalty gabungan untuk badge UI
+                const totalPenaltyForBadge = calcTotalPenaltyForBadge({
                     perfume: perfumeRecord,
                     prefFamilies,
                     maxPrice,
@@ -168,20 +245,32 @@ export async function POST(req: NextRequest) {
                     prefLongevity,
                 });
 
+                // Parfum dianggap "cocok" jika: dalam budget (jika budget aktif) DAN penalti preferensi kecil
+                const isWithinBudget = maxPrice === null || price <= maxPrice;
+                const prefPenalty = calcPreferencePenalty({
+                    perfume: perfumeRecord,
+                    prefFamilies,
+                    prefSillage,
+                    prefProjection,
+                    prefLongevity,
+                });
+                const matchesPreference = isWithinBudget && prefPenalty < 0.15;
+
                 results.push({
                     rank: rankOrder++,
                     id: perfumeRecord.id,
                     name: perfumeRecord.name,
                     brand: perfumeRecord.brand,
                     olfactory_family: perfumeRecord.olfactory_family,
-                    price: Number(perfumeRecord.price),
+                    price,
                     sillage: Number(perfumeRecord.sillage),
                     projection: Number(perfumeRecord.projection),
                     longevity: Number(perfumeRecord.longevity),
-                    score: adjustedScore,           // skor setelah penalty (untuk ranking)
-                    rawScore: rawTopsisScore,       // skor TOPSIS murni (untuk tampilan detail)
-                    penalty: Math.round(penalty * 100), // % penalty (untuk badge)
-                    matchesPreference: penalty < 0.15,  // dianggap cocok jika penalti kecil
+                    score: adjustedScore,                           // skor setelah penalty+boost (untuk ranking)
+                    rawScore: rawTopsisScore,                       // skor TOPSIS murni (untuk tampilan detail)
+                    penalty: Math.round(totalPenaltyForBadge * 100), // % penalty gabungan (untuk badge)
+                    matchesPreference,
+                    withinBudget: isWithinBudget,                  // apakah parfum ada di dalam budget
                 });
             }
         }

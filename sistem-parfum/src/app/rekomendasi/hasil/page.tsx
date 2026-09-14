@@ -29,6 +29,7 @@ interface PerfumeResult {
   rawScore: number;
   penalty: number;
   matchesPreference: boolean;
+  withinBudget: boolean;
 }
 
 function HasilRekomendasiContent() {
@@ -187,8 +188,10 @@ function HasilRekomendasiContent() {
                   <tbody>
                       {results.map((perfume) => (
                           <tr key={perfume.id} className={`${
-                            perfume.rank === 1 ? 'bg-indigo-500/10' : 
-                            perfume.matchesPreference ? 'bg-emerald-500/5' : ''
+                            perfume.rank === 1 && perfume.withinBudget !== false ? 'bg-indigo-500/10' : 
+                            perfume.rank === 1 ? 'bg-red-900/10' :
+                            perfume.matchesPreference ? 'bg-emerald-500/5' : 
+                            perfume.withinBudget === false ? 'bg-red-900/5' : ''
                           } hover:bg-gray-700/30 transition duration-150`}>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
                                 <div className="flex flex-col items-start gap-1">
@@ -198,7 +201,10 @@ function HasilRekomendasiContent() {
                                   {perfume.matchesPreference && (
                                     <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">✓ Cocok</span>
                                   )}
-                                  {!perfume.matchesPreference && perfume.penalty > 0 && (
+                                  {perfume.withinBudget === false && (
+                                    <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">⚠ Melebihi Budget</span>
+                                  )}
+                                  {perfume.withinBudget !== false && !perfume.matchesPreference && perfume.penalty > 0 && (
                                     <span className="text-[9px] bg-orange-500/15 text-orange-400 border border-orange-500/25 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">-{perfume.penalty}%</span>
                                   )}
                                 </div>
@@ -216,7 +222,9 @@ function HasilRekomendasiContent() {
                                   </span>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
-                                  <p className="text-gray-200 font-medium">Rp {perfume.price.toLocaleString('id-ID')}</p>
+                                  <p className={`font-medium ${perfume.withinBudget === false ? 'text-red-400' : 'text-gray-200'}`}>
+                                    Rp {perfume.price.toLocaleString('id-ID')}
+                                  </p>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm text-center">
                                 <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
