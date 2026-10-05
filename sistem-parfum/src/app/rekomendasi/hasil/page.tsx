@@ -291,7 +291,7 @@ function HasilRekomendasiContent() {
                 <div>
                   <p className="text-amber-300 font-bold text-base">Parfum Melebihi Budget</p>
                   <p className="text-amber-500/80 text-xs mt-0.5">
-                    {overBudgetResults.length} parfum di luar budget ditampilkan sebagai referensi — tidak termasuk dalam perhitungan TOPSIS utama.
+                    {overBudgetResults.length} Pilihan lainnya diluar budget.
                   </p>
                 </div>
               </div>
