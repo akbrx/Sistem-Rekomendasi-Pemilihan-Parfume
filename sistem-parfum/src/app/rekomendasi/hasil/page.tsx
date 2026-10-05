@@ -38,12 +38,14 @@ function HasilRekomendasiContent() {
   const { data: session } = useSession();
   
   const [results, setResults] = useState<PerfumeResult[]>([]);
+  const [overBudgetResults, setOverBudgetResults] = useState<PerfumeResult[]>([]);
   const [calcSteps, setCalcSteps] = useState<CalculationSteps | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [toastMsg, setToastMsg] = useState('');
   const [openStep, setOpenStep] = useState<number | null>(null);
+  const [showOverBudget, setShowOverBudget] = useState(false);
 
   // Fetch hasil rekomendasi
   useEffect(() => {
@@ -71,6 +73,7 @@ function HasilRekomendasiContent() {
         
         if (data.success) {
           setResults(data.rankings);
+          setOverBudgetResults(data.overBudgetResults || []);
           setCalcSteps(data.calculationSteps);
         } else {
           setError(data.message || 'Gagal mengambil data.');
@@ -188,10 +191,8 @@ function HasilRekomendasiContent() {
                   <tbody>
                       {results.map((perfume) => (
                           <tr key={perfume.id} className={`${
-                            perfume.rank === 1 && perfume.withinBudget !== false ? 'bg-indigo-500/10' : 
-                            perfume.rank === 1 ? 'bg-red-900/10' :
-                            perfume.matchesPreference ? 'bg-emerald-500/5' : 
-                            perfume.withinBudget === false ? 'bg-red-900/5' : ''
+                            perfume.rank === 1 ? 'bg-indigo-500/10' : 
+                            perfume.matchesPreference ? 'bg-emerald-500/5' : ''
                           } hover:bg-gray-700/30 transition duration-150`}>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
                                 <div className="flex flex-col items-start gap-1">
@@ -201,10 +202,7 @@ function HasilRekomendasiContent() {
                                   {perfume.matchesPreference && (
                                     <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">✓ Cocok</span>
                                   )}
-                                  {perfume.withinBudget === false && (
-                                    <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">⚠ Melebihi Budget</span>
-                                  )}
-                                  {perfume.withinBudget !== false && !perfume.matchesPreference && perfume.penalty > 0 && (
+                                  {!perfume.matchesPreference && perfume.penalty > 0 && (
                                     <span className="text-[9px] bg-orange-500/15 text-orange-400 border border-orange-500/25 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">-{perfume.penalty}%</span>
                                   )}
                                 </div>
@@ -222,7 +220,7 @@ function HasilRekomendasiContent() {
                                   </span>
                               </td>
                               <td className="px-6 py-5 border-b border-gray-700/50 text-sm whitespace-nowrap">
-                                  <p className={`font-medium ${perfume.withinBudget === false ? 'text-red-400' : 'text-gray-200'}`}>
+                                  <p className="font-medium text-gray-200">
                                     Rp {perfume.price.toLocaleString('id-ID')}
                                   </p>
                               </td>
@@ -280,7 +278,117 @@ function HasilRekomendasiContent() {
             </div>
         </div>
 
-        {/* Section Detail Perhitungan TOPSIS */}
+        {/* ── Section Over Budget ─────────────────────────────────────────────── */}
+        {overBudgetResults.length > 0 && (
+          <div className="mb-16">
+            {/* Accordion toggle */}
+            <button
+              onClick={() => setShowOverBudget(v => !v)}
+              className="w-full flex items-center justify-between px-6 py-4 bg-amber-950/40 border border-amber-700/40 rounded-2xl text-left hover:bg-amber-950/60 transition mb-1"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-amber-400 text-lg">⚠</span>
+                <div>
+                  <p className="text-amber-300 font-bold text-base">Parfum Melebihi Budget</p>
+                  <p className="text-amber-500/80 text-xs mt-0.5">
+                    {overBudgetResults.length} parfum di luar budget ditampilkan sebagai referensi — tidak termasuk dalam perhitungan TOPSIS utama.
+                  </p>
+                </div>
+              </div>
+              <svg className={`w-5 h-5 text-amber-400 transition-transform ${showOverBudget ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showOverBudget && (
+              <div className="bg-gray-800/40 backdrop-blur-xl border border-amber-700/20 rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full leading-normal">
+                    <thead>
+                      <tr>
+                        {['Ref.', 'Nama Parfum', 'Brand', 'Aroma', 'Harga', '💨 Sil', '📡 Proj', '⏳ Long', 'Skor (Ci)', 'Favorit'].map(h => (
+                          <th key={h} className="px-6 py-4 border-b border-amber-700/20 bg-amber-950/30 text-left text-xs font-bold text-amber-500/80 uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {overBudgetResults.map((perfume) => (
+                        <tr key={perfume.id} className="hover:bg-amber-900/10 transition duration-150">
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm whitespace-nowrap">
+                            <div className="flex flex-col items-start gap-1">
+                              <span className="font-bold text-amber-500/80">#{perfume.rank}</span>
+                              <span className="text-[9px] bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">⚠ Over Budget</span>
+                              {perfume.matchesPreference && (
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-1.5 py-0.5 font-semibold whitespace-nowrap">✓ Cocok</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm">
+                            <p className="text-white font-bold">{perfume.name}</p>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm">
+                            <p className="text-gray-300 font-medium">{perfume.brand}</p>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm">
+                            <span className="relative inline-block px-3 py-1 font-semibold text-indigo-300 leading-tight">
+                              <span aria-hidden className="absolute inset-0 bg-indigo-500/20 border border-indigo-500/30 rounded-full"></span>
+                              <span className="relative text-xs">{perfume.olfactory_family}</span>
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm whitespace-nowrap">
+                            <p className="font-bold text-amber-400">Rp {perfume.price.toLocaleString('id-ID')}</p>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm text-center">
+                            <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                              perfume.sillage >= 4 ? 'bg-indigo-500/30 text-indigo-300' :
+                              perfume.sillage >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                              'bg-gray-700/50 text-gray-500'
+                            }`}>{perfume.sillage}</span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm text-center">
+                            <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                              perfume.projection >= 4 ? 'bg-cyan-500/30 text-cyan-300' :
+                              perfume.projection >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                              'bg-gray-700/50 text-gray-500'
+                            }`}>{perfume.projection}</span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm text-center">
+                            <span className={`inline-block w-7 h-7 rounded-full text-xs font-bold leading-7 ${
+                              perfume.longevity >= 4 ? 'bg-amber-500/30 text-amber-300' :
+                              perfume.longevity >= 3 ? 'bg-gray-600/50 text-gray-300' :
+                              'bg-gray-700/50 text-gray-500'
+                            }`}>{perfume.longevity}</span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-gray-700/30 text-sm whitespace-nowrap">
+                            <p className="text-amber-400/70 font-mono font-bold bg-amber-500/5 border border-amber-500/15 px-2 py-1 rounded inline-block">{perfume.score.toFixed(4)}</p>
+                          </td>
+                          <td className="px-4 py-5 border-b border-gray-700/30 text-center">
+                            <button
+                              onClick={() => toggleFavorite(perfume.id)}
+                              className="transition-all duration-200 hover:scale-125 p-1"
+                              title={favoriteIds.has(perfume.id) ? 'Hapus dari favorit' : 'Tambahkan ke favorit'}
+                            >
+                              {favoriteIds.has(perfume.id) ? (
+                                <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg className="w-6 h-6 text-gray-500 hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {calcSteps && results.length > 0 && (
           <div className="mt-12">
             <h2 className="text-3xl font-extrabold text-white mb-8 text-center flex items-center justify-center gap-3">
