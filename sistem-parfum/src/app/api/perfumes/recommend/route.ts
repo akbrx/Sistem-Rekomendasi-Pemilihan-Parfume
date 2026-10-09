@@ -92,16 +92,26 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Pisahkan: parfum dalam budget masuk TOPSIS utama,
-        // parfum melebihi budget ditampilkan terpisah di bawah hasil.
-        const perfumes      = maxPrice !== null ? allPerfumes.filter(p => Number(p.price) <= maxPrice) : allPerfumes;
-        const overBudget    = maxPrice !== null ? allPerfumes.filter(p => Number(p.price) >  maxPrice) : [];
+        // Pre-filtering berdasarkan preferensi Web (Aroma Family & Budget)
+        // [A] Budget Filter
+        let candidatePerfumes = maxPrice !== null ? allPerfumes.filter(p => Number(p.price) <= maxPrice) : allPerfumes;
+        const overBudget = maxPrice !== null ? allPerfumes.filter(p => Number(p.price) > maxPrice) : [];
+
+        // [B] Family Filter (jika user memilih aroma spesifik di web)
+        if (prefFamilies.length > 0) {
+            const familyMatched = candidatePerfumes.filter((p) => {
+                const famLower = (p.olfactory_family as string).toLowerCase();
+                return prefFamilies.some((f) => famLower.includes(f.toLowerCase()));
+            });
+            // Gunakan subset yang cocok jika ada
+            if (familyMatched.length > 0) {
+                candidatePerfumes = familyMatched;
+            }
+        }
+
+        const perfumes = candidatePerfumes;
 
         // ─── 2. Setup Bobot AHP dan Tipe Kriteria ─────────────────────────────────
-        // Bobot AHP bersifat KONSTAN — ditetapkan oleh pakar dan tidak pernah diubah
-        // oleh sistem (termasuk saat budget aktif).
-        // Penyesuaian budget ditangani di level transformasi matriks evaluasi (Langkah 3),
-        // bukan di level bobot, sehingga integritas keputusan pakar tetap terjaga.
         const ahpWeights: Record<string, number> = {
             projection: 0.38,
             longevity:  0.35,
@@ -116,33 +126,17 @@ export async function POST(req: NextRequest) {
             price:      'cost',
         };
 
-        // ─── 3. Format Evaluation Matrix ──────────────────────────────────────────
-        // Transformasi nilai diterapkan di level matriks — BUKAN di level bobot AHP.
-        //
-        // [A] Preferensi target (sillage / projection / longevity):
-        //     Jika user memilih preferensi, nilai diubah menjadi skor kesesuaian:
-        //     evaluatedValue = 5 - |preferensiUser - nilaiParfum|
-        //     Parfum yang paling dekat ke target mendapat nilai tertinggi (5).
-        //
-        // [B] Harga: selalu menggunakan nilai asli (Rp) — tidak ada manipulasi.
-        //     Filter budget ditangani dengan memisahkan parfum SEBELUM TOPSIS (Langkah 1),
-        //     bukan dengan mengubah nilai atau bobot.
-
+        // ─── 3. Format Evaluation Matrix (TOPSIS Murni) ───────────────────────────
+        // Menggunakan NILAI ASLI parfum murni dari database tanpa manipulasi rumus selisih.
         /** Helper: buat evaluation matrix dari daftar parfum */
         const buildEvaluations = (list: typeof allPerfumes): EvaluationMatrix => {
             const ev: EvaluationMatrix = {};
             for (const p of list) {
                 ev[p.id] = {
-                    sillage: prefSillage !== null
-                        ? (5 - Math.abs(prefSillage - Number(p.sillage)))
-                        : Number(p.sillage),
-                    projection: prefProjection !== null
-                        ? (5 - Math.abs(prefProjection - Number(p.projection)))
-                        : Number(p.projection),
-                    longevity: prefLongevity !== null
-                        ? (5 - Math.abs(prefLongevity - Number(p.longevity)))
-                        : Number(p.longevity),
-                    price: Number(p.price), // harga asli — tidak ditransformasi
+                    sillage: Number(p.sillage),
+                    projection: Number(p.projection),
+                    longevity: Number(p.longevity),
+                    price: Number(p.price), // harga asli
                 };
             }
             return ev;
@@ -150,7 +144,7 @@ export async function POST(req: NextRequest) {
 
         const evaluations = buildEvaluations(perfumes);
 
-        // ─── 4. Kalkulasi TOPSIS untuk parfum dalam budget ───────────────────────
+        // ─── 4. Kalkulasi TOPSIS Murni untuk parfum dalam budget ──────────────────
         const topsisService = new TopsisCalculationService();
         let rankings: Record<string, number> = {};
         let steps: any = null;
@@ -161,8 +155,7 @@ export async function POST(req: NextRequest) {
             steps = result.steps;
         }
 
-        // ─── 4b. Kalkulasi TOPSIS terpisah untuk parfum over-budget ─────────────
-        // (Digunakan untuk mengurutkan parfum over-budget di antara diri mereka sendiri)
+        // ─── 4b. Kalkulasi TOPSIS Murni terpisah untuk parfum over-budget ────────
         let overBudgetRankings: Record<string, number> = {};
         if (overBudget.length > 0) {
             const obEvaluations = buildEvaluations(overBudget);
@@ -170,52 +163,21 @@ export async function POST(req: NextRequest) {
             overBudgetRankings = obResult.rankings as Record<string, number>;
         }
 
-        // ─── 5. Terapkan Preference Penalty (aroma family) ke skor TOPSIS ───────
-        // Budget sudah ditangani di level filter (Langkah 1), bukan di post-processing.
-        // Satu-satunya penyesuaian post-TOPSIS adalah soft-penalty untuk
-        // ketidakcocokan aroma family (tidak bisa dimasukkan ke matriks numerik).
-        const prefPenaltyWeight = 0.70;
-
-        /** Helper: terapkan preference penalty ke raw TOPSIS scores */
-        const applyPenalty = (
-            rawRankings: Record<string, number>,
-            perfumeList: typeof allPerfumes
-        ): Record<number, number> => {
-            const adjusted: Record<number, number> = {};
-            for (const [idStr, rawScore] of Object.entries(rawRankings)) {
-                const id = Number(idStr);
-                const perfumeRecord = perfumeList.find(p => p.id === id)!;
-                const prefPenalty = calcPreferencePenalty({
-                    perfume: perfumeRecord,
-                    prefFamilies,
-                    prefSillage,
-                    prefProjection,
-                    prefLongevity,
-                });
-                adjusted[id] = (rawScore as number) * (1 - prefPenalty * prefPenaltyWeight);
-            }
-            return adjusted;
-        };
-
-        const adjustedScores    = applyPenalty(rankings, perfumes);
-        const obAdjustedScores  = applyPenalty(overBudgetRankings, overBudget);
-
-
-        // ─── 6. Sort berdasarkan adjusted score ──────────────────────────────────
-        const sortedEntries   = Object.entries(adjustedScores).sort((a, b) => b[1] - a[1]);
-        const obSortedEntries = Object.entries(obAdjustedScores).sort((a, b) => b[1] - a[1]);
+        // ─── 5. Ranking berdasarkan Skor TOPSIS Murni (C_i) ─────────────────────
+        // Skor TOPSIS Murni (0.0 – 1.0) digunakan 100% sebagai skor perangkingan utama.
+        const sortedEntries   = Object.entries(rankings).sort((a, b) => b[1] - a[1]);
+        const obSortedEntries = Object.entries(overBudgetRankings).sort((a, b) => b[1] - a[1]);
 
         // Ambil 10 ID teratas (in-budget) untuk detail perhitungan
         const top10Ids = sortedEntries.slice(0, 10).map(([id]) => Number(id));
 
-        // ─── 7. Bangun response rankings (in-budget) ─────────────────────────────
+        // ─── 6. Bangun response rankings (in-budget) ─────────────────────────────
         const results = [];
         let rankOrder = 1;
 
-        for (const [idStr, adjustedScore] of sortedEntries) {
+        for (const [idStr, rawTopsisScore] of sortedEntries) {
             const id = Number(idStr);
             const perfumeRecord = perfumes.find((p) => p.id === id);
-            const rawTopsisScore = rankings[idStr] || 0;
 
             if (perfumeRecord) {
                 const prefPenalty = calcPreferencePenalty({
@@ -245,7 +207,7 @@ export async function POST(req: NextRequest) {
                     sillage: Number(perfumeRecord.sillage),
                     projection: Number(perfumeRecord.projection),
                     longevity: Number(perfumeRecord.longevity),
-                    score: adjustedScore,
+                    score: rawTopsisScore, // Pure TOPSIS Score (0.0 - 1.0)
                     rawScore: rawTopsisScore,
                     penalty: Math.round(totalPenaltyForBadge * 100),
                     matchesPreference,
@@ -254,14 +216,13 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // ─── 7b. Bangun response overBudgetResults ───────────────────────────────
+        // ─── 7. Bangun response overBudgetResults ───────────────────────────────
         const overBudgetResults = [];
         let obRankOrder = 1;
 
-        for (const [idStr, adjustedScore] of obSortedEntries) {
+        for (const [idStr, rawTopsisScore] of obSortedEntries) {
             const id = Number(idStr);
             const perfumeRecord = overBudget.find((p) => p.id === id);
-            const rawTopsisScore = overBudgetRankings[idStr] || 0;
 
             if (perfumeRecord) {
                 const prefPenalty = calcPreferencePenalty({
@@ -291,7 +252,7 @@ export async function POST(req: NextRequest) {
                     sillage: Number(perfumeRecord.sillage),
                     projection: Number(perfumeRecord.projection),
                     longevity: Number(perfumeRecord.longevity),
-                    score: adjustedScore,
+                    score: rawTopsisScore, // Pure TOPSIS Score
                     rawScore: rawTopsisScore,
                     penalty: Math.round(totalPenaltyForBadge * 100),
                     matchesPreference,
