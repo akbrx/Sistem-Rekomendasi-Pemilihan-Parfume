@@ -113,10 +113,10 @@ export async function POST(req: NextRequest) {
 
         // ─── 2. Setup Bobot AHP dan Tipe Kriteria ─────────────────────────────────
         const ahpWeights: Record<string, number> = {
-            projection: 0.38,
-            longevity:  0.35,
-            price:      0.16,
-            sillage:    0.11,
+            projection: 0.356,
+            longevity:  0.325,
+            price:      0.194,
+            sillage:    0.125,
         };
 
         const criteriaTypes: Record<string, 'benefit' | 'cost'> = {
